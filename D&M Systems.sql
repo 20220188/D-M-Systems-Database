@@ -6,6 +6,16 @@ CREATE DATABASE db_dmsystems;
 
 USE db_dmsystems;
 
+CREATE TABLE tb_dependientes(
+id_dependiente INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+codigo INT UNIQUE,
+nombre_dependiente VARCHAR(50)
+);
+
+CREATE TABLE tb_formas_pago(
+id_forma_pago INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+forma_pago VARCHAR(25)
+);
 
 CREATE TABLE tb_niveles_usuarios(
 id_nivel_usuario INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -28,7 +38,7 @@ REFERENCES tb_niveles_usuarios (id_nivel_usuario)
 
 CREATE TABLE tb_tipo_clientes(
 id_tipo_cliente INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-tipo_cliente ENUM('001','002','003','004','005','006')
+tipo_cliente VARCHAR(10)
 );
 
 
@@ -97,39 +107,83 @@ nombre_laboratorio VARCHAR(50)
 CREATE TABLE tb_proveedores(
 id_proveedor INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombre_proveedor VARCHAR(15),
+NRC VARCHAR(10),
+DUI varchar(10),
+NIT VARCHAR(20),
+telefono VARCHAR(9),
+razon_social VARCHAR(250),
 id_laboratorio INT,
 CONSTRAINT fk_proveedor_laboratorio
 FOREIGN KEY (id_laboratorio)
 REFERENCES tb_laboratorios (id_laboratorio)
 );
 
+CREATE TABLE tb_bodegas(
+id_bodega INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+nombre_bodega VARCHAR(15)
+);
 
+CREATE TABLE tb_tipo_entradas(
+id_tipo_entrada INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+tipo_entrada VARCHAR(25)
+);
 
 CREATE TABLE tb_entradas(
 id_entrada INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-tipo_entrada VARCHAR(25),
 descripcion VARCHAR(250),
-fecha_entrada DATETIME DEFAULT(NOW())
+fecha_entrada DATETIME DEFAULT(NOW()),
+numero_entrada INT AUTO_INCREMENT,
+nota_entrada VARCHAR(250),
+id_tipo_entrada INT,
+CONSTRAINT fk_entrada_tipo
+FOREIGN KEY (id_tipo_entrada)
+REFERENCES tb_tipo_entradas (id_tipo_entrada),
+id_cliente INT NULL,
+CONSTRAINT fk_entrada_cliente
+FOREIGN KEY (id_cliente)
+REFERENCES tb_clientes (id_cliente),
+id_dependiente INT,
+CONSTRAINT fk_entrada_dependiente
+FOREIGN KEY (id_dependiente)
+REFERENCES tb_dependientes (id_dependiente),
+id_productos INT,
+CONSTRAINT fk_entrada_producto
+FOREIGN KEY (id_productos)
+REFERENCES tb_productos (id_productos),
+id_bodega,
+CONSTRAINT fk_salida_bodega
+FOREIGN KEY (id_bodega)
+REFERENCES tb_bodegas (id_bodega)
+);
+
+
+CREATE TABLE tb_tipo_salidas(
+id_tipo_salida INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+tipo_salida VARCHAR(25)
 );
 
 CREATE TABLE tb_salidas(
 id_salida INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-tipo_salida VARCHAR(25),
 descripcion VARCHAR(250),
-fecha_salida DATETIME DEFAULT(NOW())
-);
-
-CREATE TABLE tb_bodegas(
-id_bodega INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-nombre_bodega VARCHAR(15),
-id_salida INT,
-CONSTRAINT fk_bodega_salida
-FOREIGN KEY (id_salida)
-REFERENCES tb_salidas (id_salida),
-id_entrada INT,
-CONSTRAINT fk_bodega_entrada
-FOREIGN KEY (id_entrada)
-REFERENCES tb_entradas (id_entrada)
+fecha_salida DATETIME DEFAULT(NOW()),
+numero_salida INT AUTO_INCREMENT, /*Campo que se debe mandar a llamar en un label*/
+notas_salida VARCHAR(250),
+id_tipo_salida INT,
+CONSTRAINT fk_salida_tipo
+FOREIGN KEY (id_tipo_salida)
+REFERENCES tb_tipo_salidas (id_tipo_salida),
+id_cliente INT NULL,
+CONSTRAINT fk_salida_cliente
+FOREIGN KEY (id_cliente)
+REFERENCES tb_clientes (id_cliente),
+id_bodega,
+CONSTRAINT fk_salida_bodega
+FOREIGN KEY (id_bodega)
+REFERENCES tb_bodegas (id_bodega),
+id_productos INT,
+CONSTRAINT fk_salida_producto
+FOREIGN KEY (id_productos)
+REFERENCES tb_productos (id_productos)
 );
 
 
@@ -137,11 +191,15 @@ CREATE TABLE tb_productos(
 id_producto INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 codigo INT unique,
 nombre VARCHAR(250),
+descripcion VARCHAR(250),
 id_proveedor INT,
+marca VARCHAR(50),
+presentacion VARCHAR(25),
+fecha_vencimiento DATETIME,
 CONSTRAINT fk_producto_proveedor
 FOREIGN KEY (id_proveedor)
 REFERENCES tb_proveedores (id_proveedor),
-precio_sin_iva FLOAT,
+precio_sin_iva FLOAT, /*Precio de compra sin iva*/
 CHECK (precio_sin_iva>0),
 existencia INT
 CHECK (existencia>=0),
@@ -155,12 +213,10 @@ id_iva INT,
 CONSTRAINT fk_producto_iva
 FOREIGN KEY (id_iva)
 REFERENCES tb_iva (id_iva),
-marca VARCHAR(50),
-presentacion VARCHAR(25),
 minimo INT,
 maximo INT,
 /*datos para los reportes*/
-fecha_ultima_compra DATE,
+fecha_ultima_compra DATETIME,
 precio_ultima_compra NUMERIC(5,2)
 CHECK (precio_ultima_compra >=0),
 entradas INT,
@@ -193,14 +249,24 @@ REFERENCES tb_proveedores (id_proveedor),
 id_usuario INT,
 CONSTRAINT fk_compra_usuario
 FOREIGN KEY (id_usuario)
-REFERENCES tb_usuarios (id_usuario)
+REFERENCES tb_usuarios (id_usuario),
+id_bodega,
+CONSTRAINT fk_compra_bodega
+FOREIGN KEY (id_bodega)
+REFERENCES tb_bodegas (id_bodega),
+id_forma_pago int,
+CONSTRAINT fk_compra_pago
+FOREIGN KEY (id_forma_pago)
+REFERENCES tb_formas_pago (id_forma_pago)
 );
 
 CREATE TABLE tb_detalle_compras(
 id_detalle_compra INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 cantidad_producto INT CHECK (cantidad_producto >=0),
-fecha_ingreso DATE,
+numero_factura VARCHAR(25),
+fecha_ingreso DATETIME DEFAULT(NOW()),
 costo_compra INT CHECK(costo_compra >=0),
+notas_compra VARCHAR(250),
 id_producto INT,
 CONSTRAINT fk_detalle_compra_producto
 FOREIGN KEY (id_producto)
